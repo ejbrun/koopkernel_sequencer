@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "kkseq"
+version = "0.0.1"
+description = "Implementation of the Koopman Kernel Sequencer."
+requires-python = "==3.11.9"
+authors = [{name = "Eric Brunner", email = "ecj.brunner@gmail.com"}]
+dependencies = [
+    "ipykernel",
+    "ipython",
+    "matplotlib",
+    "numpy",
+    "kooplearn",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff",
+    "pyright",
+]
+tests = [
+  "pytest",
+  "pytest-lazy-fixtures",
+]
+
+[tool.setuptools]
+packages = ["kkseq"]
+
+[tool.ruff]
+# Default configutations: https://docs.astral.sh/ruff/configuration/
+line-length = 88
+lint.select = ["E", "F", "B", "RUF", "PT", "UP", "C4", "D"]
+lint.ignore = ["RUF002"]
+extend-exclude = ["**/*ipynb", "tests/conftest.py", ".venv/**", "klearn_tcyclone/_types/_type_stubs/**"]
+target-version = "py311"
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
