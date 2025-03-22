@@ -5,13 +5,13 @@ import logging
 
 import numpy as np
 import torch
-from torch.optim import Optimizer
 from kooplearn.data import TensorContextDataset
+from torch.optim import Optimizer
+
 from kkseq.koopkernel_sequencer import (
     KoopKernelLoss,
     NystroemKoopKernelSequencer,
 )
-
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
