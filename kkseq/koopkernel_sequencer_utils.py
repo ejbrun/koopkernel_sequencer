@@ -19,94 +19,27 @@ logger.setLevel(logging.DEBUG)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
-def batch_tensor_context(
-    tensor_context: TensorContextDataset,
-    batch_size: int,
-    input_length: int,
-    output_length: int,
-) -> tuple[torch.Tensor, torch.Tensor]:
-    """Get batched tensor context.
 
-    Args:
-        tensor_context (TensorContextDataset): Tensor context of shape
-            (n_data, input_length + output_length, num_feats).
-        batch_size (int): Batch size.
-        input_length (int): Input length.
-        output_length (int): Output length.
+def RMSE(
+    test_preds,
+    test_tgts
+):
+  """Regular RMSE metric for TCTracks data.
 
-    Returns:
-        tuple[torch.Tensor, torch.Tensor]: Tuple of batched input and output tensor
-            contexts, with shapes
-            output_length = 1:
-            (batch_size, n_data // batch_size, input_length, num_feats) and
-            (batch_size, n_data // batch_size, input_length, num_feats).
-            output_length > 1:
-            (batch_size, n_data // batch_size, input_length, num_feats) and
-            (batch_size, n_data // batch_size, input_length, output_length, num_feats).
-    """
-    if tensor_context.context_length != input_length + output_length:
-        raise Exception(
-            f"""
-            tensor_context.context_lenght (={tensor_context.context_length}) must be
-            equal to input_length (={input_length}) + output_length (={output_length}).
-            """
-        )
-    if output_length == 1:
-        tensor_context_inps = torch.tensor(
-            tensor_context.lookback(input_length), dtype=torch.float32
-        ).to(device)
-        # shape: (n_data, input_length, num_feats)
-        tensor_context_tgts = torch.tensor(
-            tensor_context.lookback(input_length, slide_by=1),
-            dtype=torch.float32,
-        ).to(device)
-        # shape: (n_data, input_length, num_feats)
-    else:
-        tensor_context_inps = torch.tensor(
-            tensor_context.lookback(input_length), dtype=torch.float32
-        ).to(device)
-        # shape: (n_data, input_length, num_feats)
-        tensor_context_tgts = torch.tensor(
-            np.array(
-                [
-                    tensor_context.lookback(input_length, slide_by=idx + 1)
-                    for idx in range(output_length)
-                ]
-            ),
-            dtype=torch.float32,
-        ).to(device)
-        # shape: (output_length, n_data, input_length, num_feats)
-        tensor_context_tgts = torch.einsum("abcd->bcad", tensor_context_tgts)
-        # shape: (n_data, input_length, output_length, num_feats)
+  Args:
+    test_preds: # models' predictions with shape of (number of trajectories,
+    number of samples for traj, forecasting horizons, 2 velocity components)
+    test_tgts: ground truth that has the same shape as test_preds.
 
-    # FIXME add random seed to randperm.
-    rand_perm = torch.randperm(tensor_context_inps.shape[0])
-    integer_divisor = tensor_context_inps.shape[0] // batch_size
-
-    tensor_context_inps = tensor_context_inps[rand_perm]
-    tensor_context_tgts = tensor_context_tgts[rand_perm]
-
-    tensor_context_inps = tensor_context_inps[: integer_divisor * batch_size]
-    tensor_context_tgts = tensor_context_tgts[: integer_divisor * batch_size]
-
-    tensor_context_inps = tensor_context_inps.reshape(
-        shape=[
-            batch_size,
-            integer_divisor,
-            *tensor_context_inps.shape[1:],
-        ]
-    )
-    # shape: (batch_size, n_data // batch_size, input_length, num_feats)
-    tensor_context_tgts = tensor_context_tgts.reshape(
-        shape=[
-            batch_size,
-            integer_divisor,
-            *tensor_context_tgts.shape[1:],
-        ]
-    )
-    # shape: (batch_size, n_data // batch_size, input_length, output_length, num_feats)
-
-    return tensor_context_inps, tensor_context_tgts
+  Returns:
+    short, medium, long forecasting horizon prediction Weighted RMSE.
+  """
+  fh = test_preds.shape[1]
+  mse = np.mean((test_preds - test_tgts)**2, axis=0)
+  # return short, medium, long forecasting horizon and total RMSE
+  return np.sqrt(np.mean(mse[:fh // 3])), np.sqrt(
+      np.mean(mse[fh // 3:fh // 3 * 2])), np.sqrt(
+          np.mean(mse[fh // 3 * 2:])), np.sqrt(np.mean(mse))
 
 
 def train_one_epoch(
