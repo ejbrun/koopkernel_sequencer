@@ -3,13 +3,10 @@
 # from datetime import datetime
 import logging
 import os
-
-# import time
 from time import time
 
 import numpy as np
 import torch
-from sklearn.model_selection import train_test_split
 
 # from torch.utils.tensorboard import SummaryWriter
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
@@ -17,7 +14,6 @@ from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from kkseq.data_utils import (
     LinearScaler,
     standardized_batched_context_from_time_series_list,
-    standardized_context_dataset_from_time_series_list,
 )
 from kkseq.koopkernel_sequencer import (
     KoopKernelLoss,
@@ -36,8 +32,9 @@ logger.setLevel(logging.DEBUG)
 def train_KoopKernelSequencer(
     model: NystroemKoopKernelSequencer,
     eval_metric: RMSE,
-    time_series_list_train,
-    time_series_list_test,
+    time_series_list_train: list,
+    time_series_list_valid: list,
+    time_series_list_test: list,
     num_epochs: int,
     batch_size: int,
     scaler: StandardScaler | MinMaxScaler | LinearScaler,
@@ -45,7 +42,6 @@ def train_KoopKernelSequencer(
     results_dir: str | None = None,
     model_name: str | None = None,
     save_model: str = "best",
-    split_valid_set: bool = True,
     early_stopping: bool = False,
     backend: str = "auto",
     **backend_kw,
@@ -55,25 +51,23 @@ def train_KoopKernelSequencer(
     Args:
         model (NystroemKoopKernelSequencer): _description_
         eval_metric (RMSE_TCTracks): _description_
-        tc_tracks (TCTracks | list[Dataset]): _description_
+        time_series_list_train (list): Training time series.
+        time_series_list_valid (list): Validation time series.
+        time_series_list_test (list): Testing time series.
         num_epochs (int): _description_
         batch_size (int): _description_
-        feature_list (_type_): _description_
         scaler (_type_): _description_
-        basin (str): _description_
-        input_length (int): _description_
-        output_length (int): _description_
-        decay_rate (float): _description_
-        learning_rate (float): _description_
-        log_file_handler (_type_): _description_
+        flag_params (dict): _description_
         results_dir (str): _description_
         model_name (str): _description_
-        flag_params (dict): _description_
         save_model (str, optional): If model should be saved. For "best" only the best
             model is save, for "all" the model after each epoch is saved. For anything
             else, no model is saved. Defaults to "best".
         early_stopping (bool): If to apply early stopping. Defaults to False.
         backend (str, optional): _description_. Defaults to "auto".
+        **backend_kw (dict, optional): Keyword arguments to pass to the backend.
+            For example, if ``'torch'``, it is possible to specify the device of the
+            tensor.
 
     Raises:
         ValueError: _description_
@@ -83,29 +77,6 @@ def train_KoopKernelSequencer(
     """
     if model_name is None:
         model_name = "default_model"
-
-    if split_valid_set:
-        time_series_list_train, time_series_list_valid = train_test_split(
-            time_series_list_train, test_size=0.1, random_state=flag_params["seed"] + 1
-        )
-    else:
-        time_series_list_valid = time_series_list_train
-
-    tensor_context_train_standardized = (
-        standardized_context_dataset_from_time_series_list(
-            time_series_list_train,
-            scaler=scaler,
-            context_length=flag_params["context_length"],
-            time_lag=1,
-            fit=True,
-            input_length=flag_params["input_length"],
-            output_length=flag_params["train_output_length"],
-        )
-    )
-
-    # TODO first have to check _initialize for output_length > 1!!
-    model._initialize_nystrom_data(tensor_context_train_standardized)
-    del tensor_context_train_standardized
 
     tensor_context_inps_train, tensor_context_tgts_train = (
         standardized_batched_context_from_time_series_list(
@@ -155,6 +126,11 @@ def train_KoopKernelSequencer(
     del time_series_list_valid
     del time_series_list_test
 
+    model._initialize_nystrom_data(
+        tensor_context_inps_train=tensor_context_inps_train,
+        tensor_context_tgts_train=tensor_context_tgts_train,
+    )
+
     if flag_params["train_output_length"] == 1:
         assert torch.all(
             tensor_context_inps_train[:, :, 1:] == tensor_context_tgts_train[:, :, :-1]
@@ -180,7 +156,7 @@ def train_KoopKernelSequencer(
     best_eval_rmse = 1e6
 
     training_time_start = time()
-    for epoch_index, epoch in enumerate(range(num_epochs)):
+    for _, epoch in enumerate(range(num_epochs)):
         start_time = time()
 
         train_rmse = train_one_epoch(
@@ -231,9 +207,7 @@ def train_KoopKernelSequencer(
                 {
                     "test_preds": test_preds,
                     "test_tgts": test_tgts,
-                    "eval_score": eval_metric(
-                        test_preds, test_tgts
-                    ),  # FIXME eval_metric() here is a tuple of four elements, why? Should be a single number.
+                    "eval_score": eval_metric(test_preds, test_tgts),
                 },
                 os.path.join(results_dir, f"ep{epoch}_test" + model_name + ".pt"),
             )
@@ -266,19 +240,17 @@ def train_KoopKernelSequencer(
             {
                 "test_preds": test_preds,
                 "test_tgts": test_tgts,
-                "eval_score": eval_metric(
-                    test_preds, test_tgts
-                ),  # FIXME eval_metric() here is a tuple of four elements, why? Should be a single number.
+                "eval_score": eval_metric(test_preds, test_tgts),
                 "train_rmses": all_train_rmses,
                 "eval_rmses": all_eval_rmses,
                 "training_runtime": training_runtime,
             },
             os.path.join(results_dir, "test_" + model_name + ".pt"),
         )
-    # with open(os.path.join(results_dir, "test_" + model_name + ".json"), "w") as jsonfile:
+    # with open(os.path.join(results_dir, "test_" + model_name + ".json"), "w") as jsonfile:  # noqa: E501
     #     json.dump(
     #         {
-    #             "eval_score": list(map(float, eval_metric(test_preds, test_tgts))), #FIXME eval_metric() here is a tuple of four elements, why? Should be a single number.
+    #             "eval_score": list(map(float, eval_metric(test_preds, test_tgts))),
     #             "train_rmses": list(map(float, all_train_rmses)),
     #             "eval_rmses": list(map(float, all_eval_rmses)),
     #         },
