@@ -41,7 +41,7 @@ def train_KoopKernelSequencer(
     flag_params: dict,
     results_dir: str | None = None,
     model_name: str | None = None,
-    save_model: str = "best",
+    save_model: bool | str = "best",
     early_stopping: bool = False,
     backend: str = "auto",
     **backend_kw,
@@ -50,20 +50,20 @@ def train_KoopKernelSequencer(
 
     Args:
         model (NystroemKoopKernelSequencer): _description_
-        eval_metric (RMSE_TCTracks): _description_
+        eval_metric (RMSE): _description_
         time_series_list_train (list): Training time series.
         time_series_list_valid (list): Validation time series.
         time_series_list_test (list): Testing time series.
         num_epochs (int): _description_
         batch_size (int): _description_
-        scaler (_type_): _description_
+        scaler (StandardScaler | MinMaxScaler | LinearScaler): _description_
         flag_params (dict): _description_
-        results_dir (str): _description_
-        model_name (str): _description_
-        save_model (str, optional): If model should be saved. For "best" only the best
-            model is save, for "all" the model after each epoch is saved. For anything
-            else, no model is saved. Defaults to "best".
-        early_stopping (bool): If to apply early stopping. Defaults to False.
+        results_dir (str | None, optional): _description_. Defaults to None.
+        model_name (str | None, optional): _description_. Defaults to None.
+        save_model (bool | str, optional): If model should be saved. For "best" or True,
+            only the best model is save, for "all" the model after each epoch is saved.
+            For anything else, no model is saved. Defaults to "best".
+        early_stopping (bool, optional): If to apply early stopping. Defaults to False.
         backend (str, optional): _description_. Defaults to "auto".
         **backend_kw (dict, optional): Keyword arguments to pass to the backend.
             For example, if ``'torch'``, it is possible to specify the device of the
@@ -73,8 +73,10 @@ def train_KoopKernelSequencer(
         ValueError: _description_
 
     Returns:
-        NystroemKoopKernelSequencer: _description_
+        tuple[NystroemKoopKernelSequencer, list[float]]: _description_
     """
+    if save_model is True:
+        save_model = "best"
     if model_name is None:
         model_name = "default_model"
 

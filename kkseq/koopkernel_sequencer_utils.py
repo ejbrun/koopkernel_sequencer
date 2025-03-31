@@ -240,3 +240,33 @@ def predict_koopkernel_sequencer(
     print(predictions.shape)
 
     return predictions[:prediction_steps]
+
+
+def get_model_name(flag_params: dict) -> str:
+    """Get model name.
+
+    Args:
+        flag_params (dict): _description_
+
+    Raises:
+        Exception: _description_
+
+    Returns:
+        str: _description_
+    """
+    model_name = "seed{}_bz{}_lr{}_decay{}_inp{}_pred{}_kknc{}_kkls{}_ctxm{}_mko{}_mv{}_ncw{}".format(  # noqa: E501, UP032
+        flag_params["seed"],
+        flag_params["batch_size"],
+        flag_params["learning_rate"],
+        flag_params["decay_rate"],
+        flag_params["input_length"],
+        flag_params["train_output_length"],
+        flag_params["koopman_kernel_num_centers"],
+        flag_params["koopman_kernel_length_scale"],
+        flag_params["context_mode"],
+        flag_params["mask_koopman_operator"],
+        flag_params["mask_version"],
+        flag_params["use_nystroem_context_window"],
+    )
+
+    return model_name

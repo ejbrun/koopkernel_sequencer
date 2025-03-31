@@ -80,7 +80,7 @@ class NystroemKoopKernelSequencer(nn.Module):
         rng_seed: float,
         context_mode: str = "full_context",
         mask_koopman_operator: bool = False,
-        mask_version: int = 0,
+        mask_version: int = 0, #TODO check if this is needed
         use_nystroem_context_window: bool = False,
     ):
         """Initialize the Koopman Kernel Seq2Seq model.
