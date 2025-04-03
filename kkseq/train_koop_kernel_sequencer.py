@@ -94,8 +94,11 @@ def train_KoopKernelSequencer(
             **backend_kw,
         )
     )
-    # shapes: (batch_size, n_data // batch_size, input_length, num_feats) or
-    # (batch_size, n_data // batch_size, input_length, output_length, num_feats)
+    # tensor_context_inps_train shape:
+    #   (batch_size, n_data // batch_size, input_length, num_feats)
+    # tensor_context_tgts_train shape:
+    #   (batch_size, n_data // batch_size, input_length, num_feats) or
+    #   (batch_size, n_data // batch_size, input_length, output_length, num_feats)
     tensor_context_inps_valid, tensor_context_tgts_valid = (
         standardized_batched_context_from_time_series_list(
             time_series_list_valid,
