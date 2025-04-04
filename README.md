@@ -1,7 +1,9 @@
-# koopkernel_sequencer
+# Koopman Kernel Sequencer
+
 Implementation of the Koopman Kernel Sequencer model.
 This model combines Koopman Kernel methods with an architecture that is trained sequentially.
-For more details see `examples/intro_koopkernelseq.ipynb`.
+
+The basic architecture of the `NystroemKoopKernelSequencer` is described in `./examples/intro_koopkernelseq.ipynb`. The model comes in several architectural variants which are briefly discussed. Benchmarking of the variants is done for the chaotic Lorenz attractor in `model_training/train_koopkernel_sequencer.py`, results are plotted in `./examples/lorenz_system.ipynb`. See below for a brief discussion.
 
 
 ## Setup
