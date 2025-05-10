@@ -1,9 +1,11 @@
 # Koopman Kernel Sequencer
 
 Implementation of the Koopman Kernel Sequencer model.
-This model combines Koopman Kernel methods with an architecture that is trained sequentially.
+This model combines Koopman Kernel methods with a deep learning neural architecture.
 
 The basic architecture of the `NystroemKoopKernelSequencer` is described in `./examples/intro_koopkernelseq.ipynb`. The model comes in several architectural variants which are briefly discussed. Benchmarking of the variants is done for the chaotic Lorenz attractor in `model_training/train_koopkernel_sequencer.py`, results are plotted in `./examples/lorenz_system.ipynb`. See below for a brief discussion.
+
+Extensive explorations of the Koopman Kernel Sequencer in the context of tropical cyclone forecasting can be found at https://github.com/ejbrun/koopman_learning_tropical_cyclone.
 
 
 ## Setup
